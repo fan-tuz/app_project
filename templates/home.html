@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h1 align="center">Notes</h1>
+<ul class="list-group list-group-flush" id="notes">
+  {% for note in user.notes %}
+  <li class="list-group-item">
+    {{ note.data }}
+    <button type="button" class="close" onClick="deleteNote({{ note.id }})">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<form method="POST">
+  <textarea name="note" id="note" class="form-control"></textarea>
+  <br />
+  <div align="center">
+    <button type="submit" class="btn btn-primary">Add Note</button>
+  </div>
+</form>
+
+<hr class="my-5">
+
+<!-- Marketplace Section -->
+<h1 align="center">Marketplace</h1>
+
+<div align="center" class="mb-3">
+  <a href="{{ url_for('views.post_product') }}" class="btn btn-success">
+    Post a Product
+  </a>
+</div>
+
+<div class="row">
+  {% for item in items %}
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      {% if item.image_url %}
+      <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.title }}">
+      {% endif %}
+      <div class="card-body">
+        <h5 class="card-title">{{ item.title }}</h5>
+        <p class="card-text">{{ item.description }}</p>
+        <p><strong>${{ item.price }}</strong></p>
+        <small class="text-muted">Posted by {{ item.seller.name }}</small>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
