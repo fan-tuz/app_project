@@ -1,6 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
+from django.contrib import messages
 from django.views.generic import (
     ListView,
     DetailView,
@@ -8,7 +9,9 @@ from django.views.generic import (
     UpdateView,
     DeleteView
 )
-from .models import Post
+from django.db import transaction
+from .models import Post, PostImage
+from .forms import PostForm, PostImageFormSet
 
 
 def home(request):
@@ -20,7 +23,7 @@ def home(request):
 
 class PostListView(ListView):
     model = Post
-    template_name = 'blog/home.html'  # <app>/<model>_<viewtype>.html
+    template_name = 'blog/home.html'
     context_object_name = 'posts'
     ordering = ['-date_posted']
     paginate_by = 5
@@ -28,7 +31,7 @@ class PostListView(ListView):
 
 class UserPostListView(ListView):
     model = Post
-    template_name = 'blog/user_posts.html'  # <app>/<model>_<viewtype>.html
+    template_name = 'blog/user_posts.html'
     context_object_name = 'posts'
     paginate_by = 5
 
@@ -39,30 +42,107 @@ class UserPostListView(ListView):
 
 class PostDetailView(DetailView):
     model = Post
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['images'] = self.object.images.all()
+        return context
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
+    """Create post with formset for images"""
     model = Post
-    fields = ['title', 'content']
-
+    form_class = PostForm
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if self.request.POST:
+            context['formset'] = PostImageFormSet(self.request.POST, self.request.FILES)
+        else:
+            context['formset'] = PostImageFormSet()
+        
+        return context
+    
     def form_valid(self, form):
-        form.instance.author = self.request.user
-        return super().form_valid(form)
+        context = self.get_context_data()
+        formset = context['formset']
+        
+        # Validate both form and formset
+        if not formset.is_valid():
+            return self.form_invalid(form)
+        
+        # Save everything in a transaction (atomic)
+        with transaction.atomic():
+            form.instance.author = self.request.user
+            self.object = form.save()  # Save post first
+            
+            formset.instance = self.object  # Link formset to post
+            instances = formset.save()  # Save images
+            
+            image_count = len([i for i in instances if i and i.image])
+            
+            if image_count > 0:
+                messages.success(self.request, f'Post creato con {image_count} immagine/i!')
+            else:
+                messages.success(self.request, 'Post creato!')
+        
+        return redirect(self.object.get_absolute_url())
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Errore nella validazione del form.')
+        return super().form_invalid(form)
 
 
 class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """Update post with formset for images"""
     model = Post
-    fields = ['title', 'content']
-
+    form_class = PostForm
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if self.request.POST:
+            context['formset'] = PostImageFormSet(
+                self.request.POST, 
+                self.request.FILES, 
+                instance=self.object
+            )
+        else:
+            context['formset'] = PostImageFormSet(instance=self.object)
+        
+        return context
+    
     def form_valid(self, form):
-        form.instance.author = self.request.user
-        return super().form_valid(form)
-
+        context = self.get_context_data()
+        formset = context['formset']
+        
+        if not formset.is_valid():
+            return self.form_invalid(form)
+        
+        with transaction.atomic():
+            form.instance.author = self.request.user
+            self.object = form.save()
+            
+            formset.instance = self.object
+            instances = formset.save()
+            
+            # Count new images (exclude deletions)
+            new_images = [i for i in instances if i and i.image and not formset.deleted_forms]
+            
+            if new_images:
+                messages.success(self.request, f'Post aggiornato con {len(new_images)} modifica/e!')
+            else:
+                messages.success(self.request, 'Post aggiornato!')
+        
+        return redirect(self.object.get_absolute_url())
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Errore nella validazione.')
+        return super().form_invalid(form)
+    
     def test_func(self):
-        post = self.get_object()
-        if self.request.user == post.author:
-            return True
-        return False
+        return self.request.user == self.get_object().author
 
 
 class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -70,10 +150,7 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     success_url = '/'
 
     def test_func(self):
-        post = self.get_object()
-        if self.request.user == post.author:
-            return True
-        return False
+        return self.request.user == self.get_object().author
 
 
 def about(request):

@@ -2,14 +2,58 @@
 {% load crispy_forms_tags %}
 {% block content %}
     <div class="content-section">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
+            
             <fieldset class="form-group">
-                <legend class="border-bottom mb-4">Blog Post</legend>
+                <legend class="border-bottom mb-4">
+                    {% if object %}Modifica Post{% else %}Nuovo Post{% endif %}
+                </legend>
+                
+                <!-- Post Form (title, content) -->
                 {{ form|crispy }}
             </fieldset>
+            
+            <!-- Image Formset -->
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Immagini (max 5)</legend>
+                
+                {{ formset.management_form }}
+                
+                {% for form in formset %}
+                    <div class="formset-form mb-3 p-3 border rounded">
+                        {% if form.instance.pk and form.instance.image %}
+                            <!-- Existing image preview -->
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <img src="{{ form.instance.image.url }}" 
+                                         class="img-fluid rounded" 
+                                         alt="Image preview">
+                                </div>
+                                <div class="col-md-9">
+                                    {{ form.as_p }}
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- New image upload -->
+                            {{ form.as_p }}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                <small class="form-text text-muted">
+                    Puoi caricare fino a 5 immagini totali (JPG, PNG, GIF, WebP - max 5MB ciascuna)
+                </small>
+            </fieldset>
+            
             <div class="form-group">
-                <button class="btn btn-outline-info" type="submit">Post</button>
+                <button class="btn btn-outline-info" type="submit">
+                    {% if object %}Aggiorna{% else %}Pubblica{% endif %}
+                </button>
+                <a class="btn btn-outline-secondary" 
+                   href="{% if object %}{% url 'post-detail' object.id %}{% else %}{% url 'blog-home' %}{% endif %}">
+                    Annulla
+                </a>
             </div>
         </form>
     </div>

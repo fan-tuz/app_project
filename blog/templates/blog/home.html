@@ -9,12 +9,35 @@
               <small class="text-muted">{{ post.date_posted|date:"F d, Y" }}</small>
             </div>
             <h2><a class="article-title" href="{% url 'post-detail' post.id %}">{{ post.title }}</a></h2>
-            <p class="article-content">{{ post.content }}</p>
+            <p class="article-content">{{ post.content|truncatewords:30 }}</p>
+            
+            <!-- Anteprima prima immagine del post (se esiste) -->
+            {% if post.images.all %}
+              <div class="mt-2 mb-2">
+                {% with post.images.first as first_image %}
+                  <a href="{% url 'post-detail' post.id %}">
+                    <img src="{{ first_image.image.url }}" 
+                         class="img-fluid rounded" 
+                         alt="Post preview"
+                         style="max-height: 300px; object-fit: cover;">
+                  </a>
+                {% endwith %}
+                {% if post.images.count > 1 %}
+                  <p class="text-muted small mt-1">
+                    <i>+{{ post.images.count|add:"-1" }} altre immagini</i>
+                  </p>
+                {% endif %}
+              </div>
+            {% endif %}
+            
+            <a href="{% url 'post-detail' post.id %}" class="btn btn-outline-primary btn-sm">
+              Leggi tutto
+            </a>
           </div>
         </article>
     {% endfor %}
+    
     {% if is_paginated %}
-
       {% if page_obj.has_previous %}
         <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
         <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
@@ -32,6 +55,5 @@
         <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
         <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
       {% endif %}
-
     {% endif %}
 {% endblock content %}
