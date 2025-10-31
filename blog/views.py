@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.db.models import Q # New import to support complex queries
 from django.views.generic import (
     ListView,
     DetailView,
@@ -10,23 +11,42 @@ from django.views.generic import (
     DeleteView
 )
 from django.db import transaction
-from .models import Post, PostImage
+from .models import Post, PostImage, Category
 from .forms import PostForm, PostImageFormSet
 
-
-def home(request):
-    context = {
-        'posts': Post.objects.all()
-    }
-    return render(request, 'blog/home.html', context)
-
-
-class PostListView(ListView):
+class PostListView(ListView): # Homepage.
     model = Post
     template_name = 'blog/home.html'
     context_object_name = 'posts'
     ordering = ['-date_posted']
     paginate_by = 5
+
+    def get_queryset(self):
+        """Filter posts by search query and category"""
+        # Base queryset
+        posts = Post.objects.filter(is_sold=False).select_related('author', 'category')
+        
+        # Search filter
+        query = self.request.GET.get('query', '').strip()
+        if query:
+            posts = posts.filter(
+                Q(title__icontains=query) | Q(content__icontains=query)
+            )
+        
+        # Category filter
+        category_id = self.request.GET.get('category', '').strip()
+        if category_id and category_id.isdigit():
+            posts = posts.filter(category_id=int(category_id))
+        
+        return posts.order_by('-date_posted')
+    
+    def get_context_data(self, **kwargs):
+        """Add categories and filter values to context"""
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.all()
+        context['query'] = self.request.GET.get('query', '').strip()
+        context['category_id'] = self.request.GET.get('category', '').strip()
+        return context
 
 
 class UserPostListView(ListView):

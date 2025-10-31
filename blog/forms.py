@@ -2,16 +2,19 @@ from django import forms
 from django.forms import inlineformset_factory
 from .models import Post, PostImage
 
-
 class PostForm(forms.ModelForm):
     """Main form for Post model"""
     
     class Meta:
         model = Post
-        fields = ['title', 'content']
+        # Added new fields
+        fields = ['title', 'content', 'category', 'price', 'is_sold']
         labels = {
             'title': 'Titolo',
-            'content': 'Contenuto'
+            'content': 'Contenuto',
+            'category': 'Categoria',
+            'price': 'Prezzo',
+            'is_sold': 'Venduto'
         }
         widgets = {
             'content': forms.Textarea(attrs={'rows': 5}),
@@ -26,8 +29,8 @@ class PostImageForm(forms.ModelForm):
         fields = ['image']
         widgets = {
             'image': forms.FileInput(attrs={
-                'class': 'form-control',
-                'accept': 'image/jpeg,image/jpg,image/png,image/gif,image/webp'
+                'class': 'form-control'#,
+                #'accept': 'image/jpeg,image/jpg,image/png,image/gif,image/webp'
             })
         }
     

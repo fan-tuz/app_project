@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import Post, PostImage
+from .models import Post, PostImage, Category
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
 
 
 class PostImageInline(admin.TabularInline):

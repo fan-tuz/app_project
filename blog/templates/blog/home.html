@@ -1,59 +1,139 @@
 {% extends "blog/base.html" %}
 {% block content %}
-    {% for post in posts %}
-        <article class="media content-section">
-          <img class="rounded-circle article-img" src="{{ post.author.profile.image.url }}">
-          <div class="media-body">
-            <div class="article-metadata">
-              <a class="mr-2" href="{% url 'user-posts' post.author.username %}">{{ post.author }}</a>
-              <small class="text-muted">{{ post.date_posted|date:"F d, Y" }}</small>
-            </div>
-            <h2><a class="article-title" href="{% url 'post-detail' post.id %}">{{ post.title }}</a></h2>
-            <p class="article-content">{{ post.content|truncatewords:30 }}</p>
-            
-            <!-- Anteprima prima immagine del post (se esiste) -->
-            {% if post.images.all %}
-              <div class="mt-2 mb-2">
-                {% with post.images.first as first_image %}
-                  <a href="{% url 'post-detail' post.id %}">
-                    <img src="{{ first_image.image.url }}" 
-                         class="img-fluid rounded" 
-                         alt="Post preview"
-                         style="max-height: 300px; object-fit: cover;">
-                  </a>
-                {% endwith %}
-                {% if post.images.count > 1 %}
-                  <p class="text-muted small mt-1">
-                    <i>+{{ post.images.count|add:"-1" }} altre immagini</i>
-                  </p>
-                {% endif %}
-              </div>
-            {% endif %}
-            
-            <a href="{% url 'post-detail' post.id %}" class="btn btn-outline-primary btn-sm">
-              Leggi tutto
-            </a>
-          </div>
-        </article>
-    {% endfor %}
-    
-    {% if is_paginated %}
-      {% if page_obj.has_previous %}
-        <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
-        <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-      {% endif %}
+<div class="container mt-4">
 
-      {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-          <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
-        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
-        {% endif %}
-      {% endfor %}
+  <!-- What the template receives -->
+  <div class="alert alert-warning" role="alert">
+    <h5>🐛 DEBUG INFO</h5>
+    <ul class="mb-0">
+      <li><strong>Query:</strong> "{{ query }}" (empty: {{ query|yesno:"yes,no" }})</li>
+      <li><strong>Category ID:</strong> "{{ category_id }}" (empty: {{ category_id|yesno:"yes,no" }})</li>
+      <li><strong>Total Posts:</strong> {{ posts|length }}</li>
+      <li><strong>Total Categories:</strong> {{ categories|length }}</li>
+      <li><strong>Categories:</strong> 
+        {% for cat in categories %}
+          {{ cat.id }}:{{ cat.name }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </li>
+    </ul>
+  </div>
 
-      {% if page_obj.has_next %}
-        <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
-        <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+  <!-- Search & Category Filter Form -->
+  <form method="get" action="{% url 'blog-home' %}" class="mb-4">
+    <div class="row g-2 align-items-center">
+      <!-- Search Input -->
+      <div class="col-md-5">
+        <input 
+          type="text" 
+          name="query" 
+          value="{{ query }}" 
+          placeholder="Cerca per titolo o contenuto..." 
+          class="form-control"
+        >
+      </div>
+
+      <!-- Category Select -->
+      <div class="col-md-4">
+        <select name="category" class="form-select">
+          <option value="">Tutte le categorie</option>
+          {% for cat in categories %}
+            <option value="{{ cat.id }}" 
+                    {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>
+              {{ cat.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Cerca</button>
+      </div>
+
+      <!-- Clear Filters -->
+      <div class="col-md-1">
+        <a href="{% url 'blog-home' %}" class="btn btn-outline-secondary w-100" title="Rimuovi filtri">
+          ✕
+        </a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Active Filters Display -->
+  {% if query or category_id %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+      <strong>Filtri attivi:</strong>
+      {% if query %}
+        <span class="badge bg-primary">Ricerca: "{{ query }}"</span>
       {% endif %}
+      {% if category_id %}
+        {% for cat in categories %}
+          {% if cat.id|stringformat:"s" == category_id %}
+            <span class="badge bg-secondary">Categoria: {{ cat.name }}</span>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      <a href="{% url 'blog-home' %}" class="text-decoration-none ms-2">Rimuovi tutti</a>
+    </div>
+  {% endif %}
+
+  <!-- Posts Count -->
+  <p class="text-muted mb-3">
+    {% if posts %}
+      Trovati <strong>{{ posts|length }}</strong> annunci
+    {% else %}
+      Nessun annuncio trovato
     {% endif %}
+  </p>
+
+  <!-- Posts List -->
+  {% if posts %}
+    {% for post in posts %}
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h4 class="card-title">
+            <a href="{% url 'post-detail' post.id %}" class="text-decoration-none">
+              {{ post.title }}
+            </a>
+          </h4>
+          <h6 class="text-muted mb-2">
+            Categoria: <span class="badge bg-secondary">{{ post.category.name }}</span>
+          </h6>
+          <p class="card-text">{{ post.content|truncatewords:25 }}</p>
+
+          <!-- Image Preview (if exists) -->
+          {% if post.images.first %}
+            <div class="mb-2">
+              <img src="{{ post.images.first.image.url }}" 
+                   class="img-fluid rounded" 
+                   style="max-height: 200px; object-fit: cover;" 
+                   alt="{{ post.title }}">
+            </div>
+          {% endif %}
+
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Pubblicato da <strong>{{ post.author }}</strong> il {{ post.date_posted|date:"d/m/Y" }}
+            </small>
+            <div>
+              <strong class="text-success">€{{ post.price|floatformat:2 }}</strong>
+              {% if post.is_sold %}
+                <span class="badge bg-danger ms-2">Venduto</span>
+              {% else %}
+                <span class="badge bg-success ms-2">Disponibile</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-warning" role="alert">
+      <h5 class="alert-heading">Nessun annuncio trovato</h5>
+      <p>Prova a modificare i filtri di ricerca o 
+         <a href="{% url 'blog-home' %}" class="alert-link">visualizza tutti gli annunci</a>.
+      </p>
+    </div>
+  {% endif %}
+</div>
 {% endblock content %}

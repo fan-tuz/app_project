@@ -4,8 +4,24 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from PIL import Image as PILImage
 
+class Category(models.Model):
+    name = models.CharField(max_length=255, default='General')
+    # Set a default for Category.name to populate existing records
+    # To be removed in production as cactegory is a required field
+
+    class Meta:
+        ordering = ('name',)
+        verbose_name_plural = 'Categories'
+    
+    def __str__(self):
+        return self.name
 
 class Post(models.Model):
+    # Adding extra fields to transform posts into products.
+    category = models.ForeignKey(Category, related_name='posts', on_delete=models.CASCADE)
+    price = models.FloatField() # null=True, blank=True kwargs necessary to populate pre-existing rows in DB.
+    is_sold = models.BooleanField(default=False)
+    
     title = models.CharField(max_length=100)
     content = models.TextField()
     date_posted = models.DateTimeField(default=timezone.now)
