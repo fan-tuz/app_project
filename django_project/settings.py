@@ -56,6 +56,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'django_project.urls'
+# Redirect dopo logout
+LOGOUT_REDIRECT_URL = 'blog:home'
 
 TEMPLATES = [
     {

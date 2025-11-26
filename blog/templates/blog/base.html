@@ -1,7 +1,6 @@
 {% load static %}
 <html>
 <head>
-
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -18,14 +17,14 @@
 </head>
 <body>
     <header class="site-header">
-      <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-bottom">
+      <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
         <div class="container">
           <a class="navbar-brand mr-4" href="{% url 'blog:home' %}">JuJa</a>
-          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="navbarToggle">
-            <div class="navbar-nav mr-auto">
+            <div class="navbar-nav me-auto">
               <a class="nav-item nav-link" href="{% url 'blog:home' %}">Home</a>
               <a class="nav-item nav-link" href="{% url 'blog:about' %}">About</a>
               <a class="nav-item nav-link" href="{% url 'conversation:inbox' %}">Inbox</a>
@@ -35,7 +34,14 @@
               {% if user.is_authenticated %}
                 <a class="nav-item nav-link" href="{% url 'blog:post-create' %}">New Post</a>
                 <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
-                <a class="nav-item nav-link" href="{% url 'logout' %}">Logout</a>
+                
+                <!-- FIX: Logout come form invece di link -->
+                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-item nav-link btn btn-link" style="border: none; padding: 0.5rem 1rem; color: #cbd5db;">
+                    Logout
+                  </button>
+                </form>
               {% else %}
                 <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
                 <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
@@ -45,7 +51,7 @@
         </div>
       </nav>
     </header>
-    <main role="main" class="container">
+    <main role="main" class="container" style="margin-top: 5rem;">
       <div class="row">
         <div class="col-md-8">
           {% if messages %}
