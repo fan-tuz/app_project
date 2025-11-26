@@ -51,7 +51,7 @@
                     {% if object %}Aggiorna{% else %}Pubblica{% endif %}
                 </button>
                 <a class="btn btn-outline-secondary" 
-                   href="{% if object %}{% url 'post-detail' object.id %}{% else %}{% url 'blog-home' %}{% endif %}">
+                   href="{% if object %}{% url 'blog:post-detail' object.id %}{% else %}{% url 'blog:home' %}{% endif %}">
                     Annulla
                 </a>
             </div>

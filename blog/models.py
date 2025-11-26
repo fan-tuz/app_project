@@ -18,8 +18,8 @@ class Category(models.Model):
 
 class Post(models.Model):
     # Adding extra fields to transform posts into products.
-    category = models.ForeignKey(Category, related_name='posts', on_delete=models.CASCADE)
-    price = models.FloatField() # null=True, blank=True kwargs necessary to populate pre-existing rows in DB.
+    category = models.ForeignKey(Category, related_name='posts', on_delete=models.CASCADE, default=1)
+    price = models.FloatField(default=0) # null=True, blank=True kwargs necessary to populate pre-existing rows in DB.
     is_sold = models.BooleanField(default=False)
     
     title = models.CharField(max_length=100)
@@ -31,7 +31,7 @@ class Post(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('post-detail', kwargs={'pk': self.pk})
+        return reverse('blog:post-detail', kwargs={'pk': self.pk})
     
 class PostImage(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='images')
